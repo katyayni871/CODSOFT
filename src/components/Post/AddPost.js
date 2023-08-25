@@ -2,44 +2,64 @@ import { useState } from "react";
 import { useFormik } from "formik";
 import "./Post.css";
 import { SERVER_URL } from "../../utils/helper";
+import axios from "axios";
 
 const AddPost = () => {
   const [file, setFile] = useState([]);
+  const [imageUrl, setImageUrl] = useState(null);
 
   const formik = useFormik({
     initialValues: {
       title: "",
       body: "",
-      imageFile: "",
+      imageUrl: "",
     },
     onSubmit: (values) => {
       //   values.file = file;
       // values.file = file;
+      values.imageUrl = imageUrl;
+      // values = JSON.stringify(values);
+
       upload(values);
     },
   });
 
-  const upload = async (data) => {
-    const response = await fetch(SERVER_URL + "/api/v1//posts/create?", {
-      method: "POST",
-      body: data,
-    });
+  const upload = (values) => {
+    const form = new FormData();
+    form.append("title", values.title);
+    form.append("body", values.body);
+    form.append("imageUrl", values.imageUrl);
 
-    const responseData = await response.json();
-    console.log(responseData);
+    fetch("http://localhost:4000/api/v1/posts/create", {
+      method: "POST",
+      body: form,
+    })
+      .then((data) => data.json())
+      .then((data) => console.log(data))
+      .catch((e) => console.log(e));
   };
 
   const handleChanges = (e) => {
     console.log(e.target.files[0]);
+    setFile(e.target.files[0]);
 
-    setFile(URL.createObjectURL(e.target.files[0]));
-    console.log(file);
-    // let reader = new FileReader();
-    // reader.readAsDataURL(e.target.files[0].File);
-    // reader.onload = () => {
-    //   setFile(reader.result);
-    // };
+    const data = new FormData();
+    data.append("file", e.target.files[0]);
+    data.append("upload_preset", "blogging");
+    data.append("cloud_name", "dppkwpi0p");
+
+    fetch("https://api.cloudinary.com/v1_1/dppkwpi0p/upload", {
+      method: "POST",
+      body: data,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log(data);
+        setImageUrl(data.secure_url);
+      })
+      .catch((err) => console.log(err));
   };
+  const handleSubmit = () => {};
 
   return (
     <div className="wrapper-post">
@@ -71,7 +91,11 @@ const AddPost = () => {
           <div className="img-add">
             <p>Add Image</p>
             <input type="file" name="photo" onChange={handleChanges} />
-            {file ? <img src={file} height={"100px"} /> : null}
+            {file ? (
+              <div>
+                <img src={imageUrl} height={"100px"} />
+              </div>
+            ) : null}
           </div>
           <button className="button-64" type="submit">
             <span className="text">Publish</span>
